@@ -84,6 +84,60 @@ This repository contains the full software architecture deployed during the comp
 
 ---
 
+## Track Specifications & Mission Scenarios
+
+The competition circuit presents challenging real-world autonomous racing scenarios involving multi-color markings, metric distinction between road obstacles, sequential stoplines, branching shortcuts, and a checkerboard finish line.
+
+### Track Marking Geometry & Feature Classification
+
+To eliminate false positives between road markings, the perception pipeline converts pixel dimensions to physical metric units using Inverse Perspective Mapping (IPM) calibration (`PIXELS_PER_CM_WIDTH`):
+
+| Marking Type | Dimensions (cm) | Optical Characteristics | Autonomous Behavior |
+| :--- | :--- | :--- | :--- |
+| **Stopline** | 35.0 cm (W) x 6.0 cm (T) | Continuous high-luminance white (`L > 200`) | Triggers state machine pause & branch transitions |
+| **Crosswalk** | 17.8 cm (W) x 3.6 cm (T) | Periodic segmented white stripes | Filtered out by aspect ratio & width thresholding |
+| **Center / Priority Lane** | Variable length | Continuous yellow stripe (`HLS/HSV`) | Prioritized over white boundaries in curved zones |
+| **Outer Boundary Lane** | Variable length | Continuous white stripe | Standard sliding-window polynomial guidance |
+| **Finish Line** | Full lane width | High-contrast black/white checkerboard | Verified by `detect_checkerboard()` to stop the vehicle |
+
+### Sequential Race Scenarios & State Machine
+
+```text
+[Start]
+   |
+   v
+[Phase 1: Lane Tracking] ----------> 5s startup straight-line bias suppression
+   |
+   v
+[Stopline 1 Encounter] -----------> 5s mandatory full stop, auto re-launch & 10s cooldown
+   |
+   v
+[Stopline 2 Encounter] -----------> Course arming & zone transition timer armed
+   |
+   v
+[Stopline 3 Encounter] -----------> Forced right steering into shortcut (white lane masked)
+   |
+   v
+[Checkerboard Finish Line] -------> Tile contour verification & race completion stop
+```
+
+1. **Phase 1: Startup & Lane Tracking**  
+   The vehicle tracks both white and yellow boundaries using adaptive sliding windows. During the first 5 seconds, right-steering bias under low-confidence conditions is suppressed to ensure stable straight-line departure.
+
+2. **Phase 2: Mandatory Stop & Re-launch (Stopline 1)**  
+   Upon detecting the primary 35 cm stopline in the lower 40% ROI, throttle is clamped to zero for exactly 5.0 seconds. After the countdown, the vehicle automatically resumes motion and activates a 10-second detection lockout to prevent double-stopping on the same line.
+
+3. **Phase 3: Transition Arming (Stopline 2)**  
+   Passing the second stopline arms the navigation state machine for upcoming directional branch decisions.
+
+4. **Phase 4: Forced Shortcut Maneuver (Stopline 3)**  
+   Detecting the third stopline triggers a calibrated forced right-turn steering routine (`지름길 강제 조향`). White lane detection is temporarily masked to avoid conflicting steering inputs and ensure clean entry into the shortcut course.
+
+5. **Phase 5: Finish Line Checkpoint**  
+   The finish line is actively monitored by `detect_checkerboard()`, which validates square contour geometries and lightness variances across consecutive tiles. Upon threshold confirmation, motor throttle is immediately cut to finish the trial safely.
+
+---
+
 ## Technical Implementations
 
 ### 1. Vision & Perception (`lane_detection`)
