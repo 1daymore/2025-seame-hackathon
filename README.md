@@ -71,6 +71,9 @@ This repository contains the full software architecture deployed during the comp
 │               ├── webcam_pub.py             # ROS 2 video publisher
 │               ├── webcam_sub.py             # Sliding window lane detector
 │               └── auto_manual_switch.py     # Operational mode switcher
+├── docs/                                     # Documentation Assets
+│   └── images/
+│       └── track_layout.png                  # Competition track map and course layout
 ├── donkeycar/                                # Donkey Car Platform Stack
 │   └── mycar/
 │       ├── calibrate.py                      # Steering/throttle PWM calibration
@@ -85,6 +88,8 @@ This repository contains the full software architecture deployed during the comp
 ---
 
 ## Track Specifications & Mission Scenarios
+
+![Competition Track Layout](docs/images/track_layout.png)
 
 The competition circuit presents challenging real-world autonomous racing scenarios involving multi-color markings, metric distinction between road obstacles, sequential stoplines, branching shortcuts, and a checkerboard finish line.
 
