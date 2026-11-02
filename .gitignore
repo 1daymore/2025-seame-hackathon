@@ -1,0 +1,34 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C/C++ build artifacts
+*.o
+*.obj
+*.so
+*.dylib
+*.dll
+
+# ROS 2 build directories
+ros2_ws/build/
+ros2_ws/install/
+ros2_ws/log/
+
+# Donkey car data & models
+donkeycar/mycar/data/
+donkeycar/mycar/models/
+donkeycar/mycar/tub/
+*.tub
+
+# Sensitive keys and tokens
+*token*
+*.key
+*.pem
+.env
+
+# Environment & IDE
+.vscode/
+.idea/
+*.swp
+*.DS_Store
