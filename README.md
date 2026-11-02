@@ -18,27 +18,27 @@ This repository contains the full software architecture deployed during the comp
 
 ## System Architecture
 
-```text
-+------------------+         +-----------------------+
-|  Camera Device   | ------> |  webcam_pub (Node)    |
-+------------------+         +-----------------------+
-                                         |
-                                         | /camera/image_raw
-                                         v
-                             +-----------------------+
-                             |  webcam_sub (Node)    |
-                             |  - BEV Transform      |
-                             |  - Sliding Window     |
-                             +-----------------------+
-                                         |
-                                         | /lane/steering_angle
-                                         v
-+------------------+         +-----------------------+
-|  Gamepad / Joy   | ------> |  auto_control (Node)  | ------> Actuator / Donkey Car
-+------------------+         |  - Stopline Detection |         (Steering & Throttle)
-                             |  - Adaptive PID       |
-                             |  - Mode Selector      |
-                             +-----------------------+
+```mermaid
+flowchart TD
+    Camera["Camera Device<br/>(Wide-Angle USB / CSI)"]
+    Joy["Gamepad / Joy Controller"]
+
+    subgraph Perception ["lane_detection (Python)"]
+        Pub["webcam_pub (Node)"]
+        Sub["webcam_sub (Node)<br/>- BEV Perspective Transform<br/>- Sliding Window Lane Search<br/>- Priority Yellow Filtering"]
+    end
+
+    subgraph Control ["auto_control (C++)"]
+        AutoControl["auto_control (Node)<br/>- Metric Stopline Detection (IPM)<br/>- Adaptive Closed-Loop PID<br/>- Operational Mode Selector"]
+    end
+
+    Actuator["Actuators / Donkey Car Platform<br/>- Steering Servo (PWM)<br/>- Throttle Motor (PWM)"]
+
+    Camera --> Pub
+    Pub -->|/camera/image_raw| Sub
+    Sub -->|/lane/steering_angle| AutoControl
+    Joy -->|/joy| AutoControl
+    AutoControl --> Actuator
 ```
 
 ---
@@ -107,23 +107,13 @@ To eliminate false positives between road markings, the perception pipeline conv
 
 ### Sequential Race Scenarios & State Machine
 
-```text
-[Start]
-   |
-   v
-[Phase 1: Lane Tracking] ----------> 5s startup straight-line bias suppression
-   |
-   v
-[Stopline 1 Encounter] -----------> 5s mandatory full stop, auto re-launch & 10s cooldown
-   |
-   v
-[Stopline 2 Encounter] -----------> Course arming & zone transition timer armed
-   |
-   v
-[Stopline 3 Encounter] -----------> Forced right steering into shortcut (white lane masked)
-   |
-   v
-[Checkerboard Finish Line] -------> Tile contour verification & race completion stop
+```mermaid
+flowchart TD
+    Start(["Start / Departure"]) --> P1["Phase 1: Lane Tracking<br/>• 5s startup straight-line bias suppression"]
+    P1 --> S1["Stopline 1 Encounter<br/>• 5s mandatory full stop, auto re-launch & 10s cooldown"]
+    S1 --> S2["Stopline 2 Encounter<br/>• Course arming & zone transition timer armed"]
+    S2 --> S3["Stopline 3 Encounter<br/>• Forced right shortcut steering & white lane masked"]
+    S3 --> Finish(["Checkerboard Finish Line<br/>• Tile contour verification & race completion stop"])
 ```
 
 1. **Phase 1: Startup & Lane Tracking**  
