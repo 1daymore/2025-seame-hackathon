@@ -19,23 +19,29 @@ This repository contains the full software architecture deployed during the comp
 ## System Architecture
 
 ```mermaid
-flowchart TD
-    Camera["Camera Device<br/>(Wide-Angle USB / CSI)"]
-    Joy["Gamepad / Joy Controller"]
+flowchart LR
+    subgraph Inputs ["Hardware Inputs"]
+        direction TB
+        Camera["Camera Device<br/>(Wide-Angle)"]
+        Joy["Gamepad / Joy<br/>(Manual Override)"]
+    end
 
-    subgraph Perception ["lane_detection (Python)"]
+    subgraph Perception ["Perception (lane_detection)"]
+        direction TB
         Pub["webcam_pub (Node)"]
-        Sub["webcam_sub (Node)<br/>- BEV Perspective Transform<br/>- Sliding Window Lane Search<br/>- Priority Yellow Filtering"]
+        Sub["webcam_sub (Node)<br/>• BEV Transform<br/>• Sliding Window Search<br/>• Yellow Lane Priority"]
+        Pub -->|/camera/image_raw| Sub
     end
 
-    subgraph Control ["auto_control (C++)"]
-        AutoControl["auto_control (Node)<br/>- Metric Stopline Detection (IPM)<br/>- Adaptive Closed-Loop PID<br/>- Operational Mode Selector"]
+    subgraph Control ["Vehicle Control (auto_control)"]
+        AutoControl["auto_control (Node)<br/>• Stopline Detection (IPM)<br/>• Adaptive PID Steering<br/>• Mode Selector"]
     end
 
-    Actuator["Actuators / Donkey Car Platform<br/>- Steering Servo (PWM)<br/>- Throttle Motor (PWM)"]
+    subgraph Actuation ["Actuators"]
+        Actuator["Donkey Car Platform<br/>• Steering Servo (PWM)<br/>• Throttle Motor (PWM)"]
+    end
 
     Camera --> Pub
-    Pub -->|/camera/image_raw| Sub
     Sub -->|/lane/steering_angle| AutoControl
     Joy -->|/joy| AutoControl
     AutoControl --> Actuator
@@ -108,12 +114,12 @@ To eliminate false positives between road markings, the perception pipeline conv
 ### Sequential Race Scenarios & State Machine
 
 ```mermaid
-flowchart TD
-    Start(["Start / Departure"]) --> P1["Phase 1: Lane Tracking<br/>• 5s startup straight-line bias suppression"]
-    P1 --> S1["Stopline 1 Encounter<br/>• 5s mandatory full stop, auto re-launch & 10s cooldown"]
-    S1 --> S2["Stopline 2 Encounter<br/>• Course arming & zone transition timer armed"]
-    S2 --> S3["Stopline 3 Encounter<br/>• Forced right shortcut steering & white lane masked"]
-    S3 --> Finish(["Checkerboard Finish Line<br/>• Tile contour verification & race completion stop"])
+flowchart LR
+    Start(["Start / Departure"]) --> P1["Phase 1: Lane Tracking<br/>• Straight-line departure"]
+    P1 --> S1["Stopline 1 Encounter<br/>• 5s mandatory full stop"]
+    S1 --> S2["Stopline 2 Encounter<br/>• Zone transition armed"]
+    S2 --> S3["Stopline 3 Encounter<br/>• Forced shortcut right turn"]
+    S3 --> Finish(["Finish Checkpoint<br/>• Checkerboard stop"])
 ```
 
 1. **Phase 1: Startup & Lane Tracking**  
