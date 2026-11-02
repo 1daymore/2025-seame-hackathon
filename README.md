@@ -203,3 +203,11 @@ python3 hardware/battery_oled_monitor.py
 - **Camera**: Wide-Angle USB / CSI Monocular Camera
 - **Power Sensor**: INA219 High-Side DC Current & Voltage Sensor (I2C: `0x40`)
 - **Display**: SSD1306 0.96-inch 128x64 Monochromatic OLED (I2C: `0x3C`)
+
+---
+
+## Contributors
+
+- [Yoonjin Cho](https://github.com/gerrard088)
+- [Daeho Won](https://github.com/1daymore)
+- [Jeongyun Choi](https://github.com/choijeongyun12)
